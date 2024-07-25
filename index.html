@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Libreview CSV Converter to iOS - Freestyle Libre 3</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">Libreview CSV Converter to iOS - Freestyle Libre 3</h1>
+                <p class="card-text">
+                    This webpage allows you to convert the CSV file from Libreview to a format that can be imported into the Health app on iOS. <br />
+                    <strong>No data is submitted to a server, it's converted in your browser.</strong> <br />
+                    You can use (not sponsored or affiliated) 
+                    <a href="https://apps.apple.com/us/app/health-csv-importer/id1275959806" target="_blank">Health CSV Importer</a> on the App Store
+                    to import the converted CSV file.
+                </p>
+                <h2>Instructions</h2>
+                <ol>
+                    <li>On <a href="https://www.libreview.com/glucosereports" target="_blank">Libreview Glucose History</a> download the glucose history.
+                        <ul>
+                            <li>It's labeled as "Download glucose data", complete the captcha and a CSV will be provided.</li>
+                        </ul>
+                    </li>
+                    <li>Upload the CSV file below.</li>
+                    <li>The download for the converted file starts automatically.</li>
+                    <li>Use <a href="https://apps.apple.com/us/app/health-csv-importer/id1275959806" target="_blank">Health CSV Importer</a> (or another tool) to import the CSV.</li>
+                </ol>
+                <p>
+                    <strong>N.B.: The tool does not take into account existing data in iOS Health and neither does the mentioned importer.</strong> You might need to delete existing data in iOS Health before importing.
+                </p>
+                <input type="file" id="fileInput" class="form-control mb-3" accept=".csv">
+                <a id="downloadLink" class="btn btn-primary" style="display:none;">Download Converted CSV</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+		document.getElementById('fileInput').addEventListener('change', function(event) {
+			const file = event.target.files[0];
+			if (!file) {
+				alert('No file selected!');
+				return;
+			}
+		
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				const text = e.target.result;
+				const convertedCSV = convertCSV(text);
+				downloadCSV(convertedCSV);
+			};
+		
+			reader.readAsText(file);
+		});
+		
+		function convertCSV(csv) {
+			const lines = csv.split('\n');
+			const result = [['Start', 'Blood Glucose']];
+		
+			lines.slice(2).forEach(line => {
+				if (line.length === 0) {
+                    return
+                }
+				const columns = line.split(',');
+		
+				// Extract necessary columns
+				const recordType = columns[3].trim();
+				const timestamp = columns[2].trim();
+				let bloodGlucose = '';
+		
+				if (recordType === '0') {
+					bloodGlucose = columns[4].trim(); // Historic Glucose mmol/L
+				} else if (recordType === '1') {
+					bloodGlucose = columns[5].trim(); // Scan Glucose mmol/L
+				}
+		
+				if (timestamp && bloodGlucose) {
+					result.push([timestamp, bloodGlucose]);
+				}
+			});
+		
+			return result.map(row => row.join(',')).join('\n');
+		}
+		
+		function downloadCSV(csv) {
+			const blob = new Blob([csv], { type: 'text/csv' });
+			const url = URL.createObjectURL(blob);
+			const link = document.getElementById('downloadLink');
+		
+			link.href = url;
+			link.download = 'converted.csv';
+			link.style.display = 'block';
+			link.click();
+		
+			// Revoke the object URL after the download link is used
+			setTimeout(() => URL.revokeObjectURL(url), 0);
+		}
+		
+	</script>
+</body>
+</html>
